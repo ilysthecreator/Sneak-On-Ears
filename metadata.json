@@ -1,0 +1,6 @@
+{
+  "name": "SNEAK ON EARS",
+  "description": "An aggressive, energetic, and uncompromisingly athletic streetwear and sneaker hub for hoops.",
+  "requestFramePermissions": ["camera"],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

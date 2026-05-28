@@ -1,0 +1,48 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Oswald:ital,wght@0,600;0,700;1,600;1,700&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Inter", system-ui, -apple-system, sans-serif;
+  --font-display: "Oswald", sans-serif;
+  --color-brand-bg: #fcf9f8;
+  --color-on-background: #1c1b1b;
+  --color-accent-red: #8B0000;
+  --color-action-dark: #000000;
+  --color-text-main: #111111;
+  --color-text-muted: #666666;
+  --color-surface-container: #f0edec;
+  --color-surface-container-low: #f6f3f2;
+  --color-surface-container-lowest: #ffffff;
+}
+
+body {
+  background-color: var(--color-brand-bg);
+  background-image: radial-gradient(#e5e2e1 1.2px, transparent 1.2px);
+  background-size: 20px 20px;
+  color: var(--color-on-background);
+  font-family: var(--font-sans);
+}
+
+/* Custom scrollbar for an aggressive tech feel */
+::-webkit-scrollbar {
+  width: 6px;
+}
+::-webkit-scrollbar-track {
+  background: #fcf9f8;
+}
+::-webkit-scrollbar-thumb {
+  background: #c4c7c8;
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #000000;
+}
+
+/* Hide scrollbar utility */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
