@@ -1,40 +1,110 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'motion/react';
 import { Trash2, Plus, Minus, ArrowRight, ArrowLeft, ShieldCheck, ShoppingBag } from 'lucide-react';
-import { CartItem } from '../types';
+import { api } from '../api';
+import { CartItem, User, formatIDR } from '../types';
 
 interface CartViewProps {
   cart: CartItem[];
   updateQuantity: (index: number, delta: number) => void;
   removeFromCart: (index: number) => void;
   clearCart: () => void;
+  user: User | null;
 }
 
 export const CartView: React.FC<CartViewProps> = ({
   cart,
   updateQuantity,
   removeFromCart,
-  clearCart
+  clearCart,
+  user
 }) => {
   const navigate = useNavigate();
   const [isCheckingOut, setIsCheckingOut] = useState(false);
   const [checkoutComplete, setCheckoutComplete] = useState(false);
+
+  // Midtrans Mock Modal states
+  const [showMockModal, setShowMockModal] = useState(false);
+  const [mockPaymentOption, setMockPaymentOption] = useState('card');
+  const [mockOrderId, setMockOrderId] = useState('');
+
+  // Dynamically load the Midtrans snap.js script on mount
+  useEffect(() => {
+    const scriptId = 'midtrans-snap-script';
+    if (!document.getElementById(scriptId)) {
+      const script = document.createElement('script');
+      script.id = scriptId;
+      script.src = 'https://app.sandbox.midtrans.com/snap/snap.js';
+      
+      const clientKey = import.meta.env.VITE_MIDTRANS_CLIENT_KEY || 'SB-Mid-client-placeholder';
+      script.setAttribute('data-client-key', clientKey);
+      document.body.appendChild(script);
+    }
+  }, []);
 
   // Math equations
   const subtotal = cart.reduce((total, item) => total + (item.sneaker.price * item.quantity), 0);
   const shippingCost = subtotal > 300 || subtotal === 0 ? 0 : 15;
   const totalAmount = subtotal + shippingCost;
 
-  const handleCheckoutSubmit = () => {
+  const handleCheckoutSubmit = async () => {
     if (cart.length === 0) return;
+    if (!user) {
+      alert("Please log in to checkout your order.");
+      navigate('/login');
+      return;
+    }
+
     setIsCheckingOut(true);
 
-    // Simulate payment lock
-    setTimeout(() => {
+    try {
+      const checkoutRes = await api.createPaymentToken(user.id, totalAmount);
+      
+      if (checkoutRes.isMock) {
+        setMockOrderId(checkoutRes.orderId);
+        setShowMockModal(true);
+        setIsCheckingOut(false);
+      } else {
+        // Trigger real Midtrans Snap payment popup
+        if ((window as any).snap) {
+          (window as any).snap.pay(checkoutRes.token, {
+            onSuccess: async (result: any) => {
+              console.log('Midtrans Snap payment success:', result);
+              try {
+                await api.confirmPaymentSuccess(checkoutRes.orderId, user.id);
+                setCheckoutComplete(true);
+              } catch (confirmErr) {
+                console.error('Error confirming payment:', confirmErr);
+                alert('Order was paid but failed to sync history. Please contact support.');
+              }
+              setIsCheckingOut(false);
+            },
+            onPending: (result: any) => {
+              console.log('Midtrans Snap payment pending:', result);
+              alert('Payment is pending. Please complete transaction in your app.');
+              setIsCheckingOut(false);
+            },
+            onError: (result: any) => {
+              console.error('Midtrans Snap payment error:', result);
+              alert('Payment failed. Please try again.');
+              setIsCheckingOut(false);
+            },
+            onClose: () => {
+              console.log('Midtrans Snap payment popup closed');
+              setIsCheckingOut(false);
+            }
+          });
+        } else {
+          alert('Midtrans billing gateway is still loading. Please try again.');
+          setIsCheckingOut(false);
+        }
+      }
+    } catch (err: any) {
+      console.error('Checkout error:', err);
+      alert(err.message || 'Error occurred while creating payment token.');
       setIsCheckingOut(false);
-      setCheckoutComplete(true);
-    }, 1500);
+    }
   };
 
   const closeSuccessOverlay = () => {
@@ -53,7 +123,7 @@ export const CartView: React.FC<CartViewProps> = ({
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-action-dark/80 backdrop-blur-md flex items-center justify-center p-4 z-50 select-none"
+            className="fixed inset-0 bg-action-dark/80 backdrop-blur-md flex items-center justify-center p-4 z-50 select-none text-action-dark"
           >
             <motion.div 
               initial={{ scale: 0.9, y: 30 }}
@@ -85,6 +155,125 @@ export const CartView: React.FC<CartViewProps> = ({
               >
                 RETURN TO THE COURT
               </button>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Mock Payment Simulation Modal */}
+      <AnimatePresence>
+        {showMockModal && (
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-action-dark/80 backdrop-blur-md flex items-center justify-center p-4 z-50 select-none text-action-dark"
+          >
+            <motion.div 
+              initial={{ scale: 0.9, y: 30 }}
+              animate={{ scale: 1, y: 0 }}
+              exit={{ scale: 0.9, y: 20 }}
+              className="bg-white border-4 border-action-dark p-6 md:p-8 max-w-md w-full relative shadow-[8px_8px_0px_#000]"
+            >
+              {/* Header */}
+              <div className="border-b-2 border-action-dark pb-2 mb-4 text-left">
+                <h3 className="font-display text-xl font-black uppercase text-action-dark tracking-tighter">
+                  MIDTRANS SANDBOX // MOCK PAY
+                </h3>
+                <span className="text-[10px] text-text-muted font-bold uppercase tracking-widest block mt-0.5">
+                  Order ID: {mockOrderId} • Amount: {formatIDR(totalAmount)}
+                </span>
+              </div>
+
+              {/* Payment Methods Options */}
+              <div className="flex flex-col gap-3 text-left">
+                <p className="font-sans text-[10px] font-bold text-text-muted uppercase tracking-widest">
+                  SELECT SIMULATED SANDBOX OPTION:
+                </p>
+
+                {/* Option 1: Card */}
+                <button
+                  type="button"
+                  onClick={() => setMockPaymentOption('card')}
+                  className={`w-full p-4 border-2 border-action-dark flex justify-between items-center cursor-pointer transition-all ${
+                    mockPaymentOption === 'card' 
+                      ? 'bg-action-dark text-white shadow-sm' 
+                      : 'bg-brand-bg text-action-dark hover:bg-surface-container'
+                  }`}
+                >
+                  <span className="font-display text-xs font-bold uppercase tracking-widest">MOCK CREDIT CARD</span>
+                  <span className="text-[9px] font-bold py-0.5 px-2 bg-accent-red text-white uppercase">INSTANT</span>
+                </button>
+
+                {/* Option 2: Bank Transfer */}
+                <button
+                  type="button"
+                  onClick={() => setMockPaymentOption('bank')}
+                  className={`w-full p-4 border-2 border-action-dark flex justify-between items-center cursor-pointer transition-all ${
+                    mockPaymentOption === 'bank' 
+                      ? 'bg-action-dark text-white shadow-sm' 
+                      : 'bg-brand-bg text-action-dark hover:bg-surface-container'
+                  }`}
+                >
+                  <span className="font-display text-xs font-bold uppercase tracking-widest">MOCK BANK TRANSFER (VA)</span>
+                  <span className="text-[9px] font-bold py-0.5 px-2 bg-accent-red text-white uppercase">SIMULATED</span>
+                </button>
+
+                {/* Option 3: QRIS */}
+                <button
+                  type="button"
+                  onClick={() => setMockPaymentOption('qris')}
+                  className={`w-full p-4 border-2 border-action-dark flex justify-between items-center cursor-pointer transition-all ${
+                    mockPaymentOption === 'qris' 
+                      ? 'bg-action-dark text-white shadow-sm' 
+                      : 'bg-brand-bg text-action-dark hover:bg-surface-container'
+                  }`}
+                >
+                  <span className="font-display text-xs font-bold uppercase tracking-widest">MOCK QRIS PAY</span>
+                  <span className="text-[9px] font-bold py-0.5 px-2 bg-accent-red text-white uppercase">QR CODE</span>
+                </button>
+              </div>
+
+              {/* QR Code display if QRIS is selected */}
+              {mockPaymentOption === 'qris' && (
+                <div className="my-5 p-3 bg-brand-bg border-2 border-dashed border-action-dark/30 flex flex-col items-center justify-center">
+                  <div className="w-32 h-32 bg-action-dark flex items-center justify-center text-white font-display text-xs font-bold uppercase p-2 select-none">
+                    [ MOCK QRIS ]
+                  </div>
+                  <span className="text-[9px] text-text-muted font-bold uppercase tracking-widest mt-2">
+                    Scan with simulated payment apps
+                  </span>
+                </div>
+              )}
+
+              {/* Action buttons */}
+              <div className="flex gap-4 mt-6">
+                <button
+                  type="button"
+                  onClick={async () => {
+                    try {
+                      await api.confirmPaymentSuccess(mockOrderId, user.id);
+                      setShowMockModal(false);
+                      setCheckoutComplete(true);
+                    } catch (confirmErr) {
+                      console.error('Error confirming payment:', confirmErr);
+                      alert('Simulated payment confirmation failed.');
+                    }
+                  }}
+                  className="flex-1 bg-action-dark hover:bg-accent-red text-white font-display text-xs font-bold uppercase tracking-widest py-3.5 border-0 rounded-none shadow-md cursor-pointer transition-colors"
+                >
+                  PAY SIMULATED
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowMockModal(false);
+                  }}
+                  className="px-6 bg-brand-bg hover:bg-surface-container text-action-dark font-display text-xs font-bold uppercase tracking-widest border-2 border-action-dark rounded-none cursor-pointer transition-all"
+                >
+                  CANCEL
+                </button>
+              </div>
             </motion.div>
           </motion.div>
         )}
@@ -171,7 +360,7 @@ export const CartView: React.FC<CartViewProps> = ({
 
                     {/* price details formatted in Oswald */}
                     <div className="font-display text-xl md:text-2xl font-black text-action-dark">
-                      ${item.sneaker.price * item.quantity}
+                      {formatIDR(item.sneaker.price * item.quantity)}
                     </div>
 
                   </div>
@@ -210,12 +399,12 @@ export const CartView: React.FC<CartViewProps> = ({
               <div className="flex flex-col gap-3.5 font-sans text-xs md:text-sm mb-6 pb-2">
                 <div className="flex justify-between">
                   <span className="text-brand-bg/60 font-semibold uppercase tracking-wider">Subtotal:</span>
-                  <span className="font-display font-bold">${subtotal}</span>
+                  <span className="font-display font-bold">{formatIDR(subtotal)}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-brand-bg/60 font-semibold uppercase tracking-wider">Secure Shipping:</span>
                   <span className="font-display font-bold">
-                    {shippingCost === 0 ? 'FREE DELIVERY' : `$${shippingCost}`}
+                    {shippingCost === 0 ? 'FREE DELIVERY' : formatIDR(shippingCost)}
                   </span>
                 </div>
                 <div className="flex justify-between">
@@ -229,8 +418,8 @@ export const CartView: React.FC<CartViewProps> = ({
                 <span className="font-display text-xs font-extrabold uppercase tracking-widest text-brand-bg/60 pb-1">
                   Payable Amount:
                 </span>
-                <span className="font-display text-3xl md:text-4xl font-extrabold text-white leading-none">
-                  ${totalAmount}
+                <span className="font-display text-2xl md:text-3xl font-extrabold text-white leading-none">
+                  {formatIDR(totalAmount)}
                 </span>
               </div>
 
@@ -245,7 +434,7 @@ export const CartView: React.FC<CartViewProps> = ({
                 >
                   <ShoppingBag className="w-4 h-4 stroke-[2.5]" />
                   <span>
-                    {isCheckingOut ? 'LOCKING PAYMENT...' : 'CHECKOUT ORDER'}
+                    {isCheckingOut ? 'LOCKING PAYMENT...' : (!user ? 'LOGIN TO CHECKOUT' : 'CHECKOUT ORDER')}
                   </span>
                 </motion.button>
                 

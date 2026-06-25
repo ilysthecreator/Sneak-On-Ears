@@ -55,10 +55,10 @@ export const IntroView: React.FC = () => {
           className="mt-12 group relative"
         >
           <button 
-            onClick={() => navigate('/shop')}
+            onClick={() => navigate('/login')}
             className="flex items-center justify-center bg-action-dark text-white font-display text-xl md:text-2xl font-bold uppercase tracking-wide px-12 py-5 rounded-none cursor-pointer transition-colors duration-300 group-hover:bg-accent-red relative z-10 shadow-2xl"
           >
-            ENTER THE SHOP
+            ENTER THE COURT
             <ArrowRight className="w-6 h-6 ml-4 transition-transform duration-300 group-hover:translate-x-2 stroke-[2.5]" />
           </button>
           

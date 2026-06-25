@@ -1,26 +1,29 @@
 import React, { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'motion/react';
-import { ArrowLeft, ShoppingBag, Heart, Star, Compass, ShieldCheck } from 'lucide-react';
-import { Sneaker, CartItem } from '../types';
-import { SNEAKERS_DATA } from '../data';
+import { ArrowLeft, ShoppingBag, Heart, Compass, ShieldCheck } from 'lucide-react';
+import { Sneaker, CartItem, User, formatIDR } from '../types';
 
 interface DetailViewProps {
+  sneakers: Sneaker[];
   addToCart: (item: CartItem) => void;
   savedPairs: string[];
   toggleSavePair: (id: string) => void;
+  user: User | null;
 }
 
 export const DetailView: React.FC<DetailViewProps> = ({
+  sneakers,
   addToCart,
   savedPairs,
-  toggleSavePair
+  toggleSavePair,
+  user
 }) => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
 
   // Find sneaker by URL ID
-  const sneaker = SNEAKERS_DATA.find((s) => s.id === id);
+  const sneaker = sneakers.find((s) => s.id === id);
 
   const [selectedSize, setSelectedSize] = useState<number>(
     sneaker ? sneaker.sizes[2] || 9 : 9
@@ -52,6 +55,12 @@ export const DetailView: React.FC<DetailViewProps> = ({
   const isSaved = savedPairs.includes(sneaker.id);
 
   const handleBuyNow = () => {
+    if (!user) {
+      alert("Please log in to add drops to your game bag.");
+      navigate('/login');
+      return;
+    }
+
     const newItem: CartItem = {
       sneaker,
       size: selectedSize,
@@ -172,8 +181,8 @@ export const DetailView: React.FC<DetailViewProps> = ({
             </div>
 
             <div className="flex items-center gap-4 mt-2">
-              <span className="font-display text-2xl md:text-3xl font-extrabold text-accent-red">
-                ${sneaker.price}
+              <span className="font-display text-2xl font-black text-action-dark tracking-wider">
+                {formatIDR(sneaker.price)}
               </span>
               <span className="text-[11px] font-semibold bg-action-dark text-white px-2.5 py-0.5 rounded-none font-display tracking-widest">
                 VERIFIED CORES

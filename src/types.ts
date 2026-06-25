@@ -30,3 +30,30 @@ export interface SavedPair {
   sneaker: Sneaker;
   savedAt: string;
 }
+
+export interface User {
+  id: number;
+  email: string;
+  username: string;
+  role: 'customer' | 'admin';
+}
+
+export interface Article {
+  id: number;
+  title: string;
+  content: string;
+  image: string;
+  category: string;
+  author: string;
+  created_at: string;
+}
+
+export const formatIDR = (amount: number): string => {
+  return new Intl.NumberFormat('id-ID', {
+    style: 'currency',
+    currency: 'IDR',
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0
+  }).format(amount);
+};
+

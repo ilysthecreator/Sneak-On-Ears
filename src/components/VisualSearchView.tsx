@@ -2,14 +2,15 @@ import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'motion/react';
 import { Camera, Image, Upload, Zap, Sparkles, RefreshCw, X, ChevronRight, Compass } from 'lucide-react';
-import { Sneaker } from '../types';
-import { SNEAKERS_DATA } from '../data';
+import { Sneaker, formatIDR } from '../types';
 
 interface VisualSearchViewProps {
+  sneakers: Sneaker[];
   setSelectedSneaker: (sneaker: Sneaker) => void;
 }
 
 export const VisualSearchView: React.FC<VisualSearchViewProps> = ({
+  sneakers,
   setSelectedSneaker
 }) => {
   const navigate = useNavigate();
@@ -59,7 +60,7 @@ export const VisualSearchView: React.FC<VisualSearchViewProps> = ({
   };
 
   const selectPrecompiledSample = (modelId: string) => {
-    const sneaker = SNEAKERS_DATA.find(s => s.id === modelId) || SNEAKERS_DATA[1];
+    const sneaker = sneakers.find(s => s.id === modelId) || sneakers[0];
     setUploadPreview(sneaker.image);
     startScanning(sneaker);
   };
@@ -70,7 +71,7 @@ export const VisualSearchView: React.FC<VisualSearchViewProps> = ({
       setUploadPreview(reader.result as string);
       
       // Smart random matching algorithm
-      const matchingShoe = SNEAKERS_DATA[Math.floor(Math.random() * SNEAKERS_DATA.length)];
+      const matchingShoe = sneakers[Math.floor(Math.random() * sneakers.length)];
       startScanning(matchingShoe);
     };
     reader.readAsDataURL(file);
@@ -105,7 +106,7 @@ export const VisualSearchView: React.FC<VisualSearchViewProps> = ({
     stopWebcam();
 
     // High quality simulation
-    const simulatedMatch = SNEAKERS_DATA[Math.floor(Math.random() * SNEAKERS_DATA.length)];
+    const simulatedMatch = sneakers[Math.floor(Math.random() * sneakers.length)];
     setUploadPreview(simulatedMatch.image);
     startScanning(simulatedMatch);
   };
@@ -195,7 +196,7 @@ export const VisualSearchView: React.FC<VisualSearchViewProps> = ({
                         {isMatched.name}
                       </span>
                       <span className="font-display text-sm font-extrabold text-accent-red block mt-0.5">
-                        ${isMatched.price}
+                        {formatIDR(isMatched.price)}
                       </span>
                     </div>
                   </div>
