@@ -17,8 +17,8 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ user, onLogout }) => {
   const [loading, setLoading] = useState(true);
   const [username, setUsername] = useState('');
   const [userRole, setUserRole] = useState<'customer' | 'admin'>('customer');
-  const [caloriesBurned, setCaloriesBurned] = useState(12450);
-  const [playTimeHours, setPlayTimeHours] = useState(142);
+  const [caloriesBurned, setCaloriesBurned] = useState(0);
+  const [playTimeHours, setPlayTimeHours] = useState(0);
   const [shippingName, setShippingName] = useState('');
   const [shippingDetail, setShippingDetail] = useState('');
   const [paymentVisa, setPaymentVisa] = useState('');
@@ -30,8 +30,8 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ user, onLogout }) => {
   const [editShippingName, setEditShippingName] = useState('');
   const [editShippingDetail, setEditShippingDetail] = useState('');
   const [editPaymentVisa, setEditPaymentVisa] = useState('');
-  const [editCaloriesBurned, setEditCaloriesBurned] = useState(12450);
-  const [editPlayTimeHours, setEditPlayTimeHours] = useState(142);
+  const [editCaloriesBurned, setEditCaloriesBurned] = useState(0);
+  const [editPlayTimeHours, setEditPlayTimeHours] = useState(0);
 
   const [saving, setSaving] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);

@@ -8,6 +8,7 @@ DROP TABLE IF EXISTS orders;
 DROP TABLE IF EXISTS cart_items;
 DROP TABLE IF EXISTS saved_pairs;
 DROP TABLE IF EXISTS sneakers;
+DROP TABLE IF EXISTS articles;
 DROP TABLE IF EXISTS users;
 
 -- 1. Users Table
@@ -15,13 +16,13 @@ CREATE TABLE users (
     id INT AUTO_INCREMENT PRIMARY KEY,
     email VARCHAR(255) UNIQUE NOT NULL,
     password VARCHAR(255) NOT NULL,
-    username VARCHAR(255) NOT NULL DEFAULT 'Marcus Court',
+    username VARCHAR(255) NOT NULL,
     role VARCHAR(50) NOT NULL DEFAULT 'customer',
-    calories_burned INT NOT NULL DEFAULT 12450,
-    play_time_hours INT NOT NULL DEFAULT 142,
-    shipping_address_name VARCHAR(255) NOT NULL DEFAULT 'Marcus Court',
-    shipping_address_detail VARCHAR(255) NOT NULL DEFAULT '123 Asphalt Ave, Hoop City, NY 10001',
-    payment_method_visa VARCHAR(255) NOT NULL DEFAULT 'Visa ending in 4242'
+    calories_burned INT NOT NULL DEFAULT 0,
+    play_time_hours INT NOT NULL DEFAULT 0,
+    shipping_address_name VARCHAR(255) DEFAULT NULL,
+    shipping_address_detail VARCHAR(255) DEFAULT NULL,
+    payment_method_visa VARCHAR(255) DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- 2. Sneakers Table
@@ -57,19 +58,41 @@ CREATE TABLE cart_items (
     CONSTRAINT fk_cart_sneaker FOREIGN KEY (sneaker_id) REFERENCES sneakers (id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- Seed Data: Default Customer User
-INSERT INTO users (email, password, username, role, calories_burned, play_time_hours, shipping_address_name, shipping_address_detail, payment_method_visa)
-VALUES (
-    'customer@mail.com',
-    'customer123',
-    'Marcus Court',
-    'customer',
-    12450,
-    142,
-    'Marcus Court',
-    '123 Asphalt Ave, Hoop City, NY 10001',
-    'Visa ending in 4242'
-);
+-- 5. Articles Table
+CREATE TABLE articles (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    title VARCHAR(255) NOT NULL,
+    content TEXT NOT NULL,
+    image LONGTEXT NOT NULL,
+    category VARCHAR(100) NOT NULL DEFAULT 'Basketball',
+    author VARCHAR(100) NOT NULL DEFAULT 'Sneak On Ears',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- 6. Orders Table
+CREATE TABLE orders (
+    id VARCHAR(255) PRIMARY KEY,
+    user_id INT NOT NULL,
+    total_amount INT NOT NULL,
+    shipping_name VARCHAR(255) NOT NULL,
+    shipping_detail VARCHAR(255) NOT NULL,
+    status VARCHAR(50) NOT NULL DEFAULT 'pending',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT fk_orders_user FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- 7. Order Items Table
+CREATE TABLE order_items (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    order_id VARCHAR(255) NOT NULL,
+    sneaker_id VARCHAR(255),
+    sneaker_name VARCHAR(255) NOT NULL,
+    price INT NOT NULL,
+    size INT NOT NULL,
+    quantity INT NOT NULL,
+    CONSTRAINT fk_items_order FOREIGN KEY (order_id) REFERENCES orders(id) ON DELETE CASCADE,
+    CONSTRAINT fk_items_sneaker FOREIGN KEY (sneaker_id) REFERENCES sneakers(id) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- Seed Data: Default Admin User
 INSERT INTO users (email, password, username, role, calories_burned, play_time_hours, shipping_address_name, shipping_address_detail, payment_method_visa)
@@ -143,50 +166,14 @@ VALUES (
     '["/src/assets/3.png"]'
 );
 
--- 5. Orders Table
-CREATE TABLE orders (
-    id VARCHAR(255) PRIMARY KEY,
-    user_id INT NOT NULL,
-    total_amount INT NOT NULL,
-    shipping_name VARCHAR(255) NOT NULL,
-    shipping_detail VARCHAR(255) NOT NULL,
-    status VARCHAR(50) NOT NULL DEFAULT 'pending',
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    CONSTRAINT fk_orders_user FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
--- 6. Order Items Table
-CREATE TABLE order_items (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    order_id VARCHAR(255) NOT NULL,
-    sneaker_id VARCHAR(255),
-    sneaker_name VARCHAR(255) NOT NULL,
-    price INT NOT NULL,
-    size INT NOT NULL,
-    quantity INT NOT NULL,
-    CONSTRAINT fk_items_order FOREIGN KEY (order_id) REFERENCES orders(id) ON DELETE CASCADE,
-    CONSTRAINT fk_items_sneaker FOREIGN KEY (sneaker_id) REFERENCES sneakers(id) ON DELETE SET NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
--- Seed Data: Default Order (Paid) for Marcus Court
-INSERT INTO orders (id, user_id, total_amount, shipping_name, shipping_detail, status)
-VALUES (
-    'SNEAK-1719300000000',
-    1,
-    3300000,
-    'Marcus Court',
-    '123 Asphalt Ave, Hoop City, NY 10001',
-    'paid'
-);
-
--- Seed Data: Default Order Item
-INSERT INTO order_items (order_id, sneaker_id, sneaker_name, price, size, quantity)
-VALUES (
-    'SNEAK-1719300000000',
-    'air-flight-x',
-    'GIANNIS IMMORTALITY 4',
-    3300000,
-    9,
-    1
-);
-
+-- Seed Data: Articles
+INSERT INTO articles (title, content, image, category, author) VALUES 
+('Rise of the Brutalist Courts: Outdoor Streetball Culture', 
+ 'Outdoor streetball courts around the world are undergoing an aesthetic revolution. From the stark asphalt of New York City to the vibrant color-blocked courts in Paris, basketball environments are shaping fashion, shoe designs, and community bonding. We explore the architectural shift towards heavy concrete design, bold lines, and raw materials that define the modern outdoor player\'s playground. Brutalist layouts don\'t just offer a place to shoot; they make a statement about design resilience, combining bright geometric lines with rugged raw textures.', 
+ '/src/assets/4.png', 'Culture', 'Marcus Court'),
+('The Psychology of Sneaker Colorways on the Court', 
+ 'Why do mismatched shoes like the Sabrina 3 or Nike Ja 2 dominate the visual space in professional games? Psychology suggests that vibrant, contrasting colors not only boost player confidence but can also serve as visual anchors for team passing and defensive tracking. We break down the color wheel of basketball drops and what they communicate to your opponents during high-intensity matchups.', 
+ '/src/assets/2.png', 'Gear Analysis', 'Coach Henderson'),
+('High-Performance Training: Dynamic Lateral Agility for Guards', 
+ 'Speed is nothing without control. For guards relying on quick crossover cuts and explosive drive steps, building lateral hip mobility and ankle stability is paramount. In this piece, trainers from the Sneak Academy share a 4-week workout outline designed to improve your court reaction times and protect your joints during high-impact landings.', 
+ '/src/assets/3.png', 'Training', 'Dr. Sarah Carter');

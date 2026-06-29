@@ -527,10 +527,10 @@ app.post('/api/payment/checkout', async (req, res) => {
       [userId]
     );
     const user = userRows[0] || { 
-      username: 'Marcus Court', 
-      email: 'customer@mail.com',
-      shipping_address_name: 'Marcus Court',
-      shipping_address_detail: '123 Asphalt Ave, Hoop City, NY 10001'
+      username: 'Customer', 
+      email: '',
+      shipping_address_name: '',
+      shipping_address_detail: ''
     };
 
     // Fetch current user cart items to persist in order_items
@@ -558,8 +558,8 @@ app.post('/api/payment/checkout', async (req, res) => {
           orderId,
           userId,
           Math.round(totalAmount),
-          user.shipping_address_name,
-          user.shipping_address_detail
+          user.shipping_address_name || user.username || 'Customer',
+          user.shipping_address_detail || 'No shipping address provided'
         ]
       );
 
